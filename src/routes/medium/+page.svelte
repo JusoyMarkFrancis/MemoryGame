@@ -94,7 +94,7 @@
           <!-- Heading added above the button -->
           <h1 class="main-heading">32 Cards</h1> 
           <button class="modal-button start" on:click={() => { playButtonSound(); startGame(); }}>Play Now</button>
-          <a href="/" class="modal-button bottom" on:click={handleBackToMainMenu}>Back to Main Menu</a>
+          <a href="./" class="modal-button bottom" on:click={handleBackToMainMenu}>Back to Main Menu</a>
         </div>
       </div>
     {:else}

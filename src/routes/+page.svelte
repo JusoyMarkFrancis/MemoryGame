@@ -259,9 +259,9 @@
       <div class="modal-content">
         <h2>Select Difficulty</h2>
         <div class="modal-buttons">
-          <button class="difficulty-button" on:click={(e) => handleDifficultySelection("easy", e)}>Easy</button>
-          <button class="difficulty-button" on:click={(e) => handleDifficultySelection("medium", e)}>Medium</button>
-          <button class="difficulty-button" on:click={(e) => handleDifficultySelection("hard", e)}>Hard</button>
+          <button class="difficulty-button" on:click={(e) => handleDifficultySelection("./easy", e)}>Easy</button>
+          <button class="difficulty-button" on:click={(e) => handleDifficultySelection("./medium", e)}>Medium</button>
+          <button class="difficulty-button" on:click={(e) => handleDifficultySelection("./hard", e)}>Hard</button>
         </div>
       </div>
     </div>
