@@ -1,206 +1,358 @@
 <script lang="ts">
-    let inGame = false;  // Track if the game has started
-    let countdown = 3;  // Countdown starting at 3
-    let countdownInterval: ReturnType<typeof setInterval> | null = null;  // Proper type
-    let countdownSound: HTMLAudioElement;  // Sound for the countdown
-    let backgroundMusic: HTMLAudioElement;  // Background music element
-  
-    // Audio for button clicks
-    let buttonSound: HTMLAudioElement;
-  
-    // Start the countdown and game
-    function startGame() {
-      inGame = true;
-      countdown = 3;  // Reset countdown to 3 before starting
-      countdownInterval = setInterval(() => {
-        if (countdown > 0) {
-          countdown--;
-          playCountdownSound(); // Play countdown sound every second
-        } else {
-          clearInterval(countdownInterval!); // Stop the countdown when it reaches 0
-        }
-      }, 1000);  // Update every second
-      
-      // Fade out background music
-      fadeOutBackgroundMusic();
+  import { onMount, onDestroy } from 'svelte';
+
+  const cardValues = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+
+  let shuffledCards: string[] = [];
+  let flippedCards: number[] = [];
+  let matchedCards = new Set<number>();
+  let isDisabled = false;
+
+  let isGameOver = false;
+  let isInitialReveal = true;
+
+  let timer: number = 0;
+  let interval: any;
+  let isPaused: boolean = false;
+  let showModal: boolean = false;
+  let isGameStarted: boolean = false;
+
+  // Shuffle the cards by randomizing their order
+  function shuffleCards() {
+    const cards = [...cardValues, ...cardValues];
+    shuffledCards = cards
+      .map(value => ({ value, id: Math.random() }))
+      .sort((a, b) => a.id - b.id)
+      .map(({ value }) => value);
+  }
+
+  // Flip a card and check for matches
+  function flipCard(index: number) {
+    if (isDisabled || matchedCards.has(index) || flippedCards.length === 2 || isPaused) {
+      return;
     }
-  
-    // Play the countdown sound
-    function playCountdownSound() {
-      countdownSound.play();
-    }
-  
-    // Fade out the background music
-    function fadeOutBackgroundMusic() {
-      let fadeDuration = 3000; // Duration of the fade in milliseconds
-      let fadeInterval = 50; // Interval to decrease volume
-      let fadeStep = 1 / (fadeDuration / fadeInterval); // Amount to decrease volume each step
-      let currentVolume = backgroundMusic.volume;
-  
-      let fade = setInterval(() => {
-        currentVolume -= fadeStep;
-        if (currentVolume <= 0) {
-          clearInterval(fade); // Stop fading when volume reaches 0
-          backgroundMusic.pause(); // Pause the background music
-          backgroundMusic.currentTime = 0; // Reset to the start
-        }
-        backgroundMusic.volume = Math.max(currentVolume, 0); // Ensure volume doesn't go below 0
-      }, fadeInterval);
-    }
-  
-    // Play the sound effect
-    function playButtonSound() {
-      buttonSound.play();
-    }
-  
-    // Handle the "Back to Main Menu" click with sound and navigation
-    function handleBackToMainMenu(event: Event) {
-      event.preventDefault(); // Prevent immediate navigation
-      playButtonSound(); // Play the sound first
+
+    flippedCards = [...flippedCards, index];
+
+    if (flippedCards.length === 2) {
+      isDisabled = true;
+      const [first, second] = flippedCards;
+
+      if (shuffledCards[first] === shuffledCards[second]) {
+        matchedCards.add(first);
+        matchedCards.add(second);
+      }
+
       setTimeout(() => {
-        window.location.href = '/'; // Manually navigate after sound finishes
-      }, 300); // Wait for the sound to finish (300ms delay)
+        flippedCards = [];
+        isDisabled = false;
+
+        if (matchedCards.size === shuffledCards.length) {
+          isGameOver = true;
+          clearInterval(interval);
+          showModal = true;  // Show the modal when the game is over
+        }
+      }, 1000);
     }
-  </script>
-  
-  <svelte:head>
-    <!-- Font import -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;400;700&display=swap" rel="stylesheet">
-  </svelte:head>
-  
-  <main>
-    <!-- Background music with autoplay and loop -->
-    <audio bind:this={backgroundMusic} autoplay loop>
-      <source src="./sounds/bgMusic.mp3" type="audio/mpeg" />
-      Your browser does not support the audio element.
-    </audio>
-  
-    <!-- Audio for button click sound -->
-    <audio bind:this={buttonSound}>
-      <source src="./sounds/click.mp3" type="audio/mpeg" />
-    </audio>
-  
-    <!-- Audio for countdown sound -->
-    <audio bind:this={countdownSound}>
-      <source src="./sounds/tut.mp3" type="audio/mpeg" />
-    </audio>
-    
-    {#if !inGame}
-      <!-- Main Menu -->
-      <div class="centered">
-        <div class="button-container">
-          <!-- Heading added above the button -->
-          <h1 class="main-heading">32 Cards</h1> 
-          <button class="modal-button start" on:click={() => { playButtonSound(); startGame(); }}>Play Now</button>
-          <a href="./" class="modal-button bottom" on:click={handleBackToMainMenu}>Back to Main Menu</a>
-        </div>
-      </div>
+  }
+
+  // Handle the initial reveal of the cards (before game starts)
+  function handleInitialReveal() {
+    isInitialReveal = true;
+    setTimeout(() => {
+      flippedCards = [];
+      isInitialReveal = false;
+      startTimer(); // Start the timer after initial reveal
+    }, 2000); // Reveal the cards for 2 seconds before starting the timer
+  }
+
+  // Start the timer when the game begins
+  function startTimer() {
+    if (!isPaused) {
+      interval = setInterval(() => {
+        timer += 1;
+      }, 1000);
+    }
+  }
+
+  // Pause the timer and show the modal
+  function pauseTimer() {
+    clearInterval(interval);
+    isPaused = true;
+    showModal = true;
+  }
+
+  // Resume the timer and hide the modal
+  function resumeTimer() {
+    isPaused = false;
+    showModal = false;
+    startTimer();
+  }
+
+  // Reset the game
+  function resetGame() {
+    matchedCards.clear();
+    flippedCards = [];
+    isGameOver = false;
+    timer = 0;
+    isPaused = false;
+    showModal = false;
+    isGameStarted = false; // Mark the game as not started
+    shuffleCards(); // Shuffle cards again when the game is reset
+  }
+
+  function backToMainMenu() {
+    resetGame();
+    window.location.href = '/';  // Redirect to home page
+  }
+
+  // Start the game (trigger initial reveal and timer)
+  function startGame() {
+    if (!isGameStarted) {
+      isGameStarted = true;
+      handleInitialReveal(); // Reveal cards initially
+    }
+  }
+
+  // Format time in MM:SS format
+  function formatTime(seconds: number): string {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+  }
+
+  onMount(() => {
+    shuffleCards(); // Shuffle cards only once when the component is mounted
+  });
+
+  onDestroy(() => {
+    clearInterval(interval);
+  });
+</script>
+
+<style>
+  :global(html, body) {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: transparent;
+    overflow: hidden;
+  }
+
+  .memory-game {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    width: 70vw;
+    height: 70vh;
+    max-width: 500px;
+    max-height: 500px;
+    margin: auto;
+    background-color: transparent;
+    position: relative;
+    z-index: 1;
+  }
+
+  .card {
+    width: 75px;
+    height: 110px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: black;
+    font-size: 35px;
+    font-weight: bold;
+    border: 2px solid #797979;
+    border-radius: 8px;
+    cursor: pointer;
+    transform: rotateY(0deg);
+    transition: transform 0.3s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    position: relative;
+    background-color: #a7b8df;
+    z-index: 1;
+  }
+
+  .flipped {
+    transform: rotateY(180deg);
+  }
+
+  .card-text {
+    backface-visibility: hidden;
+    transform: rotateY(180deg);
+  }
+
+  .card.flipped .card-text {
+    transform: rotateY(0deg);
+  }
+
+  .game-over {
+    text-align: center;
+    font-size: 24px;
+    color: white;
+    margin-top: 20px;
+  }
+
+  .reset-button {
+    display: block;
+    margin: 20px auto;
+    padding: 10px 20px;
+    font-size: 1rem;
+    color: #1e3252;
+    background-color: #FFCC00;
+    border: none;
+    border-radius: 5px;
+    margin: 10px;
+    cursor: pointer;
+    width: auto;
+  }
+
+  .reset-button:hover {
+    background-color: #d89d13;
+  }
+
+  .timer {
+    font-size: 40px;
+    text-align: center;
+    margin-bottom: 10px;
+    font-weight: bold;
+    color: white;
+  }
+
+  .pause-button {
+    font-size: 1rem;
+    padding: 6px 12px;
+    color: #1e3252;
+    background-color: #FFCC00;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 10px;
+  }
+
+  .pause-button:hover {
+    background-color: #d89d13;
+  }
+
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0.3s, opacity 0.3s;
+    z-index: 2;
+  }
+
+  .modal.show {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .modal-content {
+    background-color: #364669;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 300px;
+    height: 300px;
+  }
+
+  .modal-content h3 {
+    color: #fafafa;
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+  }
+
+  .modal-button {
+    display: block;
+    margin: 20px auto;
+    padding: 10px 20px;
+    font-size: 1rem;
+    color: #1e3252;
+    background-color: #FFCC00;
+    border: none;
+    border-radius: 5px;
+    margin: 10px;
+    cursor: pointer;
+    width: auto;
+  }
+
+  .modal-button:hover {
+    background-color: #d89d13;
+    color: rgb(51, 54, 90);
+  }
+
+  .start-button {
+    font-size: 1rem;
+    padding: 10px 20px;
+    color: #1e3252;
+    background-color: #FFCC00;
+    border: none;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    cursor: pointer;
+  }
+
+  .start-button:hover {
+    background-color: #d89d13;
+  }
+</style>
+
+<!-- Timer display -->
+<div class="timer">
+  {formatTime(timer)}
+</div>
+
+<!-- Start button (only visible when the game hasn't started) -->
+{#if !isGameStarted}
+  <button class="start-button" on:click={startGame}>Start Game</button>
+{/if}
+
+<!-- Pause button (only visible after game starts) -->
+{#if isGameStarted}
+  <button class="pause-button" on:click={pauseTimer}>Pause</button>
+{/if}
+
+<!-- Modal for pause and game over state -->
+<div class="modal {showModal ? 'show' : ''}">
+  <div class="modal-content {isGameOver ? 'game-over' : ''}">
+    {#if isGameOver}
+      <p>Congratulations! You won in {formatTime(timer)}!</p>
+      <button class="reset-button" on:click={resetGame}>Play Again</button>
+      <button class="reset-button" on:click={backToMainMenu}>Back to the Main Menu</button>
     {:else}
-      <!-- Game Screen with Countdown -->
-      <div class="centered">
-        {#if countdown > 0}
-          <div class="countdown-container">
-            <h1 class="countdown">{countdown}</h1>
-          </div>
-        {:else}
-          <h1 class="start-text">START!</h1>
-        {/if}
-      </div>
+      <h3>Game Paused</h3>
+      <button class="modal-button" on:click={resumeTimer}>Resume Game</button>
+      <button class="modal-button" on:click={resetGame}>Reset Game</button>
+      <button class="modal-button" on:click={backToMainMenu}>Back to Main Menu</button>
     {/if}
-  </main>
-  
-  <style>
-    /* Prevent scrolling */
-    :global(html, body) {
-      height: 100%; 
-      overflow: hidden;
-      margin: 0;
-      font-family: 'Poppins', sans-serif; /* Global font applied */
-    }
-  
-    main {
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-family: 'Poppins', sans-serif; /* Apply Poppins font */
-    }
-  
-    .centered {
-      text-align: center;
-      display: flex;
-      flex-direction: column; 
-      justify-content: center;
-      height: 100%;
-    }
-  
-    .button-container {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 20px;  /* Reduced space between elements in the container */
-    }
-  
-    .main-heading {
-      font-size: 7rem;
-      font-family: 'Courier New', monospace;
-      color: white;
-      margin-bottom: 10px;  /* Reduced margin to decrease space between heading and button */
-      font-weight: bold;
-    }
-  
-    .modal-button {
-      margin: 0;
-      padding: 15px 30px; /* Increase padding for larger buttons */
-      font-size: 1.2rem;  /* Increase font size for better visibility */
-      font-family: 'Courier New', monospace;
-      color: #1e3252;
-      background-color: #FFCC00;
-      border: none;
-      border-radius: 10px; /* Rounder corners for a modern look */
-      cursor: pointer;
-      text-align: center;
-      text-decoration: none; /* Remove underline for links */
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
-      transition: background-color 0.3s, transform 0.2s; /* Smooth hover effect */
-    }
-  
-    .modal-button:hover {
-      background-color: #d89d13;
-      transform: scale(1.05); /* Slight zoom effect on hover */
-    }
-  
-    .countdown-container {
-      padding: 20px;
-      display: inline-block;
-    }
-  
-    .countdown {
-      font-size: 200px;
-      font-weight: bold;
-      color: white;
-      margin: 0;
-      text-shadow: 
-        2px 2px 0 red,
-        -2px -2px 0 red,
-        2px -2px 0 red,
-        -2px 2px 0 red;
-      animation: countdown-animation 1s ease-in-out;
-    }
-  
-    .start-text {
-      font-size: 140px;
-      color: white;
-      margin-bottom: 20px;
-    }
-  
-    @keyframes countdown-animation {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.2); }
-      100% { transform: scale(1); }
-    }
-  </style>
-  
+  </div>
+</div>
+
+<!-- Memory game grid -->
+<div class="memory-game">
+  {#each shuffledCards as card, index}
+    <button
+      class="card {flippedCards.includes(index) || matchedCards.has(index) || isInitialReveal ? 'flipped' : ''}"
+      on:click={() => flipCard(index)}
+      aria-label={"Flip card " + card}
+    >
+      <div class="card-text">{card}</div>
+    </button>
+  {/each}
+</div>
