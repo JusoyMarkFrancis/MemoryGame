@@ -25,22 +25,21 @@
   let quitSoundEffect: HTMLAudioElement;
   let modalButtonSound: HTMLAudioElement;
 
-  // Sample high scores for each difficulty
   let highScores: Record<string, HighScore[]> = {
     hard: [
-      { name: "Player1", score: 1000 },
-      { name: "Player2", score: 900 },
-      { name: "Player3", score: 800 },
+      { name: "Top 1", score: 1 },
+      { name: "Top 2", score: 2 },
+      { name: "Top 3", score: 3 },
     ],
     medium: [
-      { name: "Player4", score: 1500 },
-      { name: "Player5", score: 1400 },
-      { name: "Player6", score: 1300 },
+      { name: "Top 1", score: 1 },
+      { name: "Top 2", score: 2 },
+      { name: "Top 3", score: 3 },
     ],
     easy: [
-      { name: "Player7", score: 2000 },
-      { name: "Player8", score: 1900 },
-      { name: "Player9", score: 1800 },
+      { name: "Top 1", score: 1 },
+      { name: "Top 2", score: 2 },
+      { name: "Top 3", score: 3 },
     ],
   };
 
@@ -75,7 +74,7 @@
   }
 
   function closeHighScoresModal() {
-    modalButtonSound.play(); // Play sound when closing the high scores modal
+    modalButtonSound.play();
     showHighScoresModal = false;
   }
 </script>
@@ -231,12 +230,22 @@
     background-color: #d89d13;
   }
 
+  /* Specific for Quit modal - horizontal button layout */
+  .modal.show .modal-content .modal-buttons.quit {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    flex-direction: row; /* Horizontal layout for Quit modal buttons */
+  }
+
+  /* Default for other modals - vertical button layout */
   .modal.show .modal-content .modal-buttons {
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 15px;
-    flex-direction: column;
+    flex-direction: column; /* Vertical layout for other modals */
   }
 
   .modal-buttons button.difficulty-button:hover {
@@ -266,7 +275,7 @@
     <button on:click={() => handleOption(option.action)}>{option.name}</button>
   {/each}
 
-  <!-- Main Quit Confirmation Modal -->
+  <!-- Quit Modal -->
   <div class="modal {showModal ? 'show' : ''}">
     <div class="modal-content">
       <h2>Are you sure you want to quit?</h2>
@@ -278,16 +287,18 @@
   </div>
 
   <!-- Difficulty Modal -->
-  <div class="modal {difficultyModal ? 'show' : ''}">
-    <div class="modal-content">
-      <h2>Select Difficulty</h2>
-      <div class="modal-buttons">
-        <button class="difficulty-button" on:click={(e) => handleDifficultySelection("hard", e)}>Hard</button>
-        <button class="difficulty-button" on:click={(e) => handleDifficultySelection("medium", e)}>Medium</button>
-        <button class="difficulty-button" on:click={(e) => handleDifficultySelection("easy", e)}>Easy</button>
-      </div>
+<div class="modal {difficultyModal ? 'show' : ''}">
+  <div class="modal-content">
+    <h2>Select Difficulty</h2>
+    <div class="modal-buttons">
+      <button class="difficulty-button" on:click={(e) => handleDifficultySelection("hard", e)}>Hard</button>
+      <button class="difficulty-button" on:click={(e) => handleDifficultySelection("medium", e)}>Medium</button>
+      <button class="difficulty-button" on:click={(e) => handleDifficultySelection("easy", e)}>Easy</button>
+      <!-- Close button for Difficulty Modal -->
+      <button on:click={() => difficultyModal = false}>Close</button>
     </div>
   </div>
+</div>
 
   <!-- High Scores Modal -->
   <div class="modal {showHighScoresModal ? 'show' : ''}">

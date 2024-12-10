@@ -1,26 +1,24 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-
+  
   const cardValues = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-
+  
   let shuffledCards: string[] = [];
   let flippedCards: number[] = [];
   let matchedCards = new Set<number>();
   let isDisabled = false;
-
+  
   let isGameOver = false;
   let isInitialReveal = true;
-
+  
   let timer: number = 0;
   let interval: any;
   let isPaused: boolean = false;
   let showModal: boolean = false;
   let isGameStarted: boolean = false;
-
-  // Reference to the audio element for button sound
+  
   let playSound: HTMLAudioElement;
-
-  // Shuffle the cards by randomizing their order
+  
   function shuffleCards() {
     const cards = [...cardValues, ...cardValues];
     shuffledCards = cards
@@ -28,57 +26,53 @@
       .sort((a, b) => a.id - b.id)
       .map(({ value }) => value);
   }
-
-  // Play button click sound
+  
   function playClickSound() {
     if (playSound) {
-      playSound.currentTime = 0; // Reset the sound to start from the beginning
+      playSound.currentTime = 0;
       playSound.play();
     }
   }
-
-  // Flip a card and check for matches
+  
   function flipCard(index: number) {
     if (isDisabled || matchedCards.has(index) || flippedCards.length === 2 || isPaused) {
       return;
     }
-
+  
     flippedCards = [...flippedCards, index];
-    playClickSound();  // Play sound when a card is flipped
-
+    playClickSound();
+  
     if (flippedCards.length === 2) {
       isDisabled = true;
       const [first, second] = flippedCards;
-
+  
       if (shuffledCards[first] === shuffledCards[second]) {
         matchedCards.add(first);
         matchedCards.add(second);
       }
-
+  
       setTimeout(() => {
         flippedCards = [];
         isDisabled = false;
-
+  
         if (matchedCards.size === shuffledCards.length) {
           isGameOver = true;
           clearInterval(interval);
-          showModal = true;  // Show the modal when the game is over
+          showModal = true;
         }
       }, 650);
     }
   }
-
-  // Handle the initial reveal of the cards (before game starts)
+  
   function handleInitialReveal() {
     isInitialReveal = true;
     setTimeout(() => {
       flippedCards = [];
       isInitialReveal = false;
-      startTimer(); // Start the timer after initial reveal
-    }, 200); // Reveal the cards for 2 seconds before starting the timer
+      startTimer();
+    }, 200);
   }
-
-  // Start the timer when the game begins
+  
   function startTimer() {
     if (!isPaused) {
       interval = setInterval(() => {
@@ -86,24 +80,21 @@
       }, 1000);
     }
   }
-
-  // Pause the timer and show the modal
+  
   function pauseTimer() {
     clearInterval(interval);
     isPaused = true;
     showModal = true;
-    playClickSound();  // Play sound when the game is paused
+    playClickSound();
   }
-
-  // Resume the timer and hide the modal
+  
   function resumeTimer() {
     isPaused = false;
     showModal = false;
     startTimer();
-    playClickSound();  // Play sound when resuming the game
+    playClickSound();
   }
-
-  // Reset the game
+  
   function resetGame() {
     matchedCards.clear();
     flippedCards = [];
@@ -111,42 +102,40 @@
     timer = 0;
     isPaused = false;
     showModal = false;
-    isGameStarted = false; // Mark the game as not started
-    shuffleCards(); // Shuffle cards again when the game is reset
-    playClickSound();  // Play sound when the game is reset
+    isGameStarted = false;
+    shuffleCards();
+    playClickSound();
   }
-
+  
   function backToMainMenu() {
     resetGame();
-    window.location.href = '/';  // Redirect to home page
+    window.location.href = '/';
   }
-
-  // Start the game (trigger initial reveal and timer)
+  
   function startGame() {
     if (!isGameStarted) {
       isGameStarted = true;
-      handleInitialReveal(); // Reveal cards initially
-      playClickSound();  // Play sound when the game starts
+      handleInitialReveal();
+      playClickSound();
     }
   }
-
-  // Format time in MM:SS format
+  
   function formatTime(seconds: number): string {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
   }
-
+  
   onMount(() => {
-    shuffleCards(); // Shuffle cards only once when the component is mounted
+    shuffleCards();
   });
-
+  
   onDestroy(() => {
     clearInterval(interval);
   });
-</script>
-
-<style>
+  </script>
+  
+  <style>
   :global(html, body) {
     height: 100%;
     margin: 0;
@@ -157,24 +146,36 @@
     background-color: transparent;
     overflow: hidden;
   }
-
+  
   .memory-game {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 10px;
-    width: 70vw;
-    height: 70vh;
+    width: 90vw;
+    height: auto;
     max-width: 500px;
-    max-height: 500px;
     margin: auto;
     background-color: transparent;
     position: relative;
     z-index: 1;
   }
-
+  
+  @keyframes card-intro {
+    0% {
+      transform: translateY(30px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  
   .card {
-    width: 75px;
-    height: 110px;
+    width: 20vw;
+    height: 30vw;
+    max-width: 75px;
+    max-height: 110px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -190,51 +191,74 @@
     position: relative;
     background-color: #a7b8df;
     z-index: 1;
+    animation: card-intro 0.6s ease-in-out forwards;
+    animation-delay: calc(var(--card-index) * 0.05s);
   }
-
+  
   .flipped {
     transform: rotateY(180deg);
   }
-
+  
   .card-text {
     backface-visibility: hidden;
     transform: rotateY(180deg);
   }
-
+  
   .card.flipped .card-text {
     transform: rotateY(0deg);
   }
-
-  .game-over {
-    text-align: center;
-    font-size: 24px;
-    color: white;
-    margin-top: 20px;
-  }
-
+  
   .timer {
-    font-size: 40px;
+    font-size: 6vw;
     text-align: center;
     margin-bottom: 10px;
     font-weight: bold;
     color: white;
+    animation: slide-up 0.8s ease-out;
   }
-
-  .pause-button {
+  
+  @keyframes slide-up {
+    0% {
+      transform: translateY(30px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  .start-button {
     font-size: 1rem;
-    padding: 6px 12px;
+    padding: 10px 20px;
     color: #1e3252;
     background-color: #FFCC00;
     border: none;
     border-radius: 5px;
-    cursor: pointer;
     margin-bottom: 10px;
+    cursor: pointer;
+    animation: slide-up 0.8s ease-out;
   }
-
+  
+  .start-button:hover {
+    background-color: #d89d13;
+  }
+  
+  .pause-button {
+    font-size: 1rem;
+    padding: 10px 20px;
+    color: #1e3252;
+    background-color: #FFCC00;
+    border: none;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    cursor: pointer;
+  }
+  
   .pause-button:hover {
     background-color: #d89d13;
   }
-
+  
   .modal {
     position: fixed;
     top: 0;
@@ -250,12 +274,12 @@
     transition: visibility 0.3s, opacity 0.3s;
     z-index: 2;
   }
-
+  
   .modal.show {
     visibility: visible;
     opacity: 1;
   }
-
+  
   .modal-content {
     background-color: #364669;
     padding: 20px;
@@ -266,16 +290,22 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    width: 300px;
-    height: 300px;
+    width: 80vw;
+    max-width: 300px;
+    height: auto;
+    animation: slide-up 0.6s ease-out;
   }
+  .modal-content p {
+  color: white;
+}
 
+  
   .modal-content h3 {
     color: #fafafa;
     font-size: 1.2rem;
     margin-bottom: 20px;
   }
-
+  
   .modal-button {
     display: block;
     margin: 20px auto;
@@ -288,72 +318,65 @@
     margin: 10px;
     cursor: pointer;
     width: auto;
+    animation: slide-up 0.8s ease-out;
   }
-
+  
   .modal-button:hover {
     background-color: #d89d13;
     color: rgb(51, 54, 90);
   }
-
-  .start-button {
-    font-size: 1rem;
-    padding: 10px 20px;
-    color: #1e3252;
-    background-color: #FFCC00;
-    border: none;
-    border-radius: 5px;
-    margin-bottom: 10px;
-    cursor: pointer;
+  
+  @media (max-width: 600px) {
+    .card {
+      font-size: 28px;
+    }
+  
+    .modal-content {
+      width: 90%;
+      padding: 15px;
+    }
+  
+    .modal-button {
+      font-size: 0.9rem;
+    }
   }
-
-  .start-button:hover {
-    background-color: #d89d13;
-  }
-</style>
-
-<!-- Timer display -->
-<div class="timer">
-  {formatTime(timer)}
-</div>
-
-<!-- Start button (only visible when the game hasn't started) -->
-{#if !isGameStarted}
+  </style>
+  
+  <div class="timer">{formatTime(timer)}</div>
+  
+  {#if !isGameStarted}
   <button class="start-button" on:click={startGame}>Start Game</button>
-{/if}
-
-<!-- Pause button (only visible after game starts) -->
-{#if isGameStarted}
+  {/if}
+  
+  {#if isGameStarted}
   <button class="pause-button" on:click={pauseTimer}>Pause</button>
-{/if}
-
-<!-- Modal for pause and game over state -->
-<div class="modal {showModal ? 'show' : ''}">
-  <div class="modal-content {isGameOver ? 'game-over' : ''}">
-    {#if isGameOver}
+  {/if}
+  
+  <div class="modal {showModal ? 'show' : ''}">
+    <div class="modal-content {isGameOver ? 'game-over' : ''}">
+      {#if isGameOver}
       <p>Congratulations! You won in {formatTime(timer)}!</p>
       <button class="modal-button" on:click={backToMainMenu}>Back to the Main Menu</button>
-    {:else}
+      {:else}
       <h3>Game Paused</h3>
       <button class="modal-button" on:click={resumeTimer}>Resume Game</button>
       <button class="modal-button" on:click={backToMainMenu}>Back to Main Menu</button>
-    {/if}
+      {/if}
+    </div>
   </div>
-</div>
-
-<!-- Memory game grid -->
-<div class="memory-game">
-  {#each shuffledCards as card, index}
+  
+  <div class="memory-game">
+    {#each shuffledCards as card, index}
     <button
       class="card {flippedCards.includes(index) || matchedCards.has(index) || isInitialReveal ? 'flipped' : ''}"
       on:click={() => flipCard(index)}
-      aria-label={"Flip card " + card}
-    >
+      aria-label={"Flip card " + card}>
       <div class="card-text">{card}</div>
     </button>
-  {/each}
-</div>
-
-<!-- Audio element for the button click sound -->
-<audio bind:this={playSound}>
-  <source src="./sounds/click.mp3" type="audio/mpeg" />
-</audio>
+    {/each}
+  </div>
+  
+  <audio bind:this={playSound}>
+    <source src="./sounds/click.mp3" type="audio/mpeg" />
+  </audio>
+  
