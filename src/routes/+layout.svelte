@@ -10,6 +10,10 @@
 
 <main class="main-content">
     <slot></slot>
+    <audio autoplay loop>
+        <source src="./sounds/bgMusic.mp3" type="audio/mpeg" />
+        Your browser does not support the audio element.
+      </audio>
 </main>
 <style>
     :global(body) {
